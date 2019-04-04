@@ -64,10 +64,31 @@ func (g Grid) GetDiamond(midpoint Point, depth int) Square {
   }
 }
 
-func (g Grid) CalculateCycle(topLeft Point, depth int) {
-  square := g.GetSquare(topLeft, depth)
-  diamondMidpoints := g.GetDiamond(square.midpoint, depth)
-  g.CalculateSquare(square)
+func (g Grid) Calculate(depth int) {
+  for stage := depth; stage > 0; stage-- {
+    areas := g.GetAreas(stage)
+    for _, square := range areas {
+      g.CalculateSquare(square)
+    }
+    for _, square := range areas {
+      g.CalculateDiamond(square, stage)
+    }
+  }
+}
+
+func (g Grid) GetAreas(depth int) []Square {
+  step := g.CalculateDepthSize(depth)-1
+  areas := make([]Square, 0)
+  for y := 0; y < g.size-1; y += step {
+    for x := 0; x < g.size-1; x += step {
+      areas = append(areas, g.GetSquare(Point{x, y}, depth))
+    }
+  }
+  return areas
+}
+
+func (g Grid) CalculateDiamond(s Square, depth int) {
+  diamondMidpoints := g.GetDiamond(s.midpoint, depth)
   for _, midpoint := range diamondMidpoints.corners {
     diamond := g.GetDiamond(midpoint, depth)
     g.CalculateSquare(diamond)
@@ -103,7 +124,7 @@ func (g Grid) String() string {
 }
 
 func main() {
-  base := 3
+  base := 4
   size := int(math.Pow(float64(2), float64(base))) + 1
   grid := make([]int, size*size)
   surface := Grid{size, grid}
@@ -113,6 +134,6 @@ func main() {
     surface.grid[i] = rand.Intn(256)
   }
   fmt.Println(surface)
-  surface.CalculateCycle(Point{0, 0}, base)
+  surface.Calculate(base)
   fmt.Println(surface)
 }
