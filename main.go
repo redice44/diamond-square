@@ -10,11 +10,12 @@ import (
   "math"
   "math/rand"
   "os"
+  "time"
 )
 
 type Grid struct {
   size int
-  grid []int
+  grid []uint8
 }
 
 type Square struct {
@@ -69,14 +70,15 @@ func (g Grid) GetDiamond(midpoint Point, depth int) Square {
   }
 }
 
-func (g Grid) Calculate(depth int) {
+func (g Grid) Calculate(depth int, random rand.Rand, epsilonScale int) {
   for stage := depth; stage > 0; stage-- {
     areas := g.GetAreas(stage)
+    epsilon := epsilonScale * stage
     for _, square := range areas {
-      g.CalculateSquare(square)
+      g.CalculateSquare(square, random, epsilon)
     }
     for _, square := range areas {
-      g.CalculateDiamond(square, stage)
+      g.CalculateDiamond(square, stage, random, epsilon)
     }
   }
 }
@@ -92,25 +94,25 @@ func (g Grid) GetAreas(depth int) []Square {
   return areas
 }
 
-func (g Grid) CalculateDiamond(s Square, depth int) {
+func (g Grid) CalculateDiamond(s Square, depth int, random rand.Rand, epsilon int) {
   diamondMidpoints := g.GetDiamond(s.midpoint, depth)
   for _, midpoint := range diamondMidpoints.corners {
     diamond := g.GetDiamond(midpoint, depth)
-    g.CalculateSquare(diamond)
+    g.CalculateSquare(diamond, random, epsilon)
   }
 }
 
-func (g Grid) CalculateSquare(s Square) {
-  sum := 0
-  amount := 0
+func (g Grid) CalculateSquare(s Square, random rand.Rand, epsilon int) {
+  sum := uint16(0)
+  amount := uint16(0)
   for _, p := range s.corners {
     if i, err := g.GetIndex(p); err == nil {
-      sum += g.grid[i]
+      sum += uint16(g.grid[i])
       amount++
     }
   }
   i, _ := g.GetIndex(s.midpoint)
-  g.grid[i] = sum / amount
+  g.grid[i] = uint8((sum / amount) + uint16(random.Intn(epsilon*2)-epsilon))
 }
 
 func (g Grid) CalculateDepthSize(depth int) int {
@@ -128,11 +130,11 @@ func (g Grid) String() string {
   return s
 }
 
-func (g Grid) CreateImage() *image.RGBA {
-  img := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{g.size, g.size}})
+func (g Grid) CreateImage() *image.Gray {
+  img := image.NewGray(image.Rectangle{image.Point{0, 0}, image.Point{g.size, g.size}})
   for y := 0; y < g.size; y++ {
     for x := 0; x < g.size; x++ {
-      gray := color.Gray{uint8(g.grid[y * g.size + x])}
+      gray := color.Gray{g.grid[y * g.size + x]}
       img.Set(x, y, gray)
     }
   }
@@ -140,18 +142,21 @@ func (g Grid) CreateImage() *image.RGBA {
 }
 
 func main() {
-  var base int
+  seed := rand.NewSource(time.Now().UnixNano())
+  random := rand.New(seed)
+  var base, epScale int
   flag.IntVar(&base, "n", 10, "n in 2^n+1")
+  flag.IntVar(&epScale, "scale", 5, "epsilon scale modifier")
   flag.Parse()
   size := int(math.Pow(float64(2), float64(base))) + 1
-  grid := make([]int, size*size)
+  grid := make([]uint8, size*size)
   surface := Grid{size, grid}
   square := surface.GetSquare(Point{0, 0}, base)
   for _, p := range square.corners {
     i, _ := surface.GetIndex(p)
-    surface.grid[i] = rand.Intn(256)
+    surface.grid[i] = uint8(random.Intn(256))
   }
-  surface.Calculate(base)
+  surface.Calculate(base, *random, epScale)
   img := surface.CreateImage()
   file, _ := os.Create("image.png")
   png.Encode(file, img)
