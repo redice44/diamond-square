@@ -2,6 +2,7 @@ package main
 
 import (
   "errors"
+  "flag"
   "fmt"
   "image"
   "image/color"
@@ -139,7 +140,9 @@ func (g Grid) CreateImage() *image.RGBA {
 }
 
 func main() {
-  base := 10
+  var base int
+  flag.IntVar(&base, "n", 10, "n in 2^n+1")
+  flag.Parse()
   size := int(math.Pow(float64(2), float64(base))) + 1
   grid := make([]int, size*size)
   surface := Grid{size, grid}
