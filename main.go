@@ -3,8 +3,12 @@ package main
 import (
   "errors"
   "fmt"
+  "image"
+  "image/color"
+  "image/png"
   "math"
   "math/rand"
+  "os"
 )
 
 type Grid struct {
@@ -123,8 +127,19 @@ func (g Grid) String() string {
   return s
 }
 
+func (g Grid) CreateImage() *image.RGBA {
+  img := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{g.size, g.size}})
+  for y := 0; y < g.size; y++ {
+    for x := 0; x < g.size; x++ {
+      gray := color.Gray{uint8(g.grid[y * g.size + x])}
+      img.Set(x, y, gray)
+    }
+  }
+  return img
+}
+
 func main() {
-  base := 4
+  base := 10
   size := int(math.Pow(float64(2), float64(base))) + 1
   grid := make([]int, size*size)
   surface := Grid{size, grid}
@@ -133,7 +148,8 @@ func main() {
     i, _ := surface.GetIndex(p)
     surface.grid[i] = rand.Intn(256)
   }
-  fmt.Println(surface)
   surface.Calculate(base)
-  fmt.Println(surface)
+  img := surface.CreateImage()
+  file, _ := os.Create("image.png")
+  png.Encode(file, img)
 }
