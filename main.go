@@ -156,8 +156,13 @@ func main() {
     i, _ := surface.GetIndex(p)
     surface.grid[i] = uint8(random.Intn(256))
   }
+  startTime := time.Now().UnixNano()
   surface.Calculate(base, *random, epScale)
+  endTime := time.Now().UnixNano()
   img := surface.CreateImage()
   file, _ := os.Create("image.png")
   png.Encode(file, img)
+  imageTime := time.Now().UnixNano()
+  fmt.Printf("Calculations: %v ms\n", (endTime - startTime)/1000/1000)
+  fmt.Printf("Image Saving: %v ms\n", (imageTime - endTime)/1000/1000)
 }
