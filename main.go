@@ -70,15 +70,15 @@ func (g Grid) GetDiamond(midpoint Point, depth int) Square {
   }
 }
 
-func (g Grid) Calculate(depth int, random rand.Rand, epsilonScale int) {
+func (g Grid) Calculate(depth int, epsilonScale int) {
   for stage := depth; stage > 0; stage-- {
     areas := g.GetAreas(stage)
     epsilon := epsilonScale * stage
     for _, square := range areas {
-      g.CalculateSquare(square, random, epsilon)
+      g.CalculateSquare(square, epsilon)
     }
     for _, square := range areas {
-      g.CalculateDiamond(square, stage, random, epsilon)
+      g.CalculateDiamond(square, stage, epsilon)
     }
   }
 }
@@ -94,15 +94,15 @@ func (g Grid) GetAreas(depth int) []Square {
   return areas
 }
 
-func (g Grid) CalculateDiamond(s Square, depth int, random rand.Rand, epsilon int) {
+func (g Grid) CalculateDiamond(s Square, depth int, epsilon int) {
   diamondMidpoints := g.GetDiamond(s.midpoint, depth)
   for _, midpoint := range diamondMidpoints.corners {
     diamond := g.GetDiamond(midpoint, depth)
-    g.CalculateSquare(diamond, random, epsilon)
+    g.CalculateSquare(diamond, epsilon)
   }
 }
 
-func (g Grid) CalculateSquare(s Square, random rand.Rand, epsilon int) {
+func (g Grid) CalculateSquare(s Square, epsilon int) {
   sum := uint16(0)
   amount := uint16(0)
   for _, p := range s.corners {
@@ -112,7 +112,7 @@ func (g Grid) CalculateSquare(s Square, random rand.Rand, epsilon int) {
     }
   }
   i, _ := g.GetIndex(s.midpoint)
-  g.grid[i] = uint8((sum / amount) + uint16(random.Intn(epsilon*2)-epsilon))
+  g.grid[i] = uint8((sum / amount) + uint16(rand.Intn(epsilon*2)-epsilon))
 }
 
 func (g Grid) CalculateDepthSize(depth int) int {
@@ -142,8 +142,7 @@ func (g Grid) CreateImage() *image.Gray {
 }
 
 func main() {
-  seed := rand.NewSource(time.Now().UnixNano())
-  random := rand.New(seed)
+  rand.Seed(time.Now().UnixNano())
   var base, epScale int
   flag.IntVar(&base, "n", 10, "n in 2^n+1")
   flag.IntVar(&epScale, "scale", 5, "epsilon scale modifier")
@@ -154,10 +153,10 @@ func main() {
   square := surface.GetSquare(Point{0, 0}, base)
   for _, p := range square.corners {
     i, _ := surface.GetIndex(p)
-    surface.grid[i] = uint8(random.Intn(256))
+    surface.grid[i] = uint8(rand.Intn(256))
   }
   startTime := time.Now().UnixNano()
-  surface.Calculate(base, *random, epScale)
+  surface.Calculate(base, epScale)
   endTime := time.Now().UnixNano()
   img := surface.CreateImage()
   file, _ := os.Create("image.png")
