@@ -6,9 +6,9 @@ import (
   "image"
   "image/color"
   "image/png"
+  "io"
   "math"
   "math/rand"
-  "os"
   "time"
 )
 
@@ -140,7 +140,7 @@ func (g Grid) CreateImage() *image.Gray {
   return img
 }
 
-func (g Grid) Run(base int, epScale int) {
+func (g Grid) Run(w io.Writer, base int, epScale int) {
   rand.Seed(time.Now().UnixNano())
   square := g.GetSquare(Point{0, 0}, base)
   for _, p := range square.corners {
@@ -149,8 +149,7 @@ func (g Grid) Run(base int, epScale int) {
   }
   g.Calculate(base, epScale)
   img := g.CreateImage()
-  file, _ := os.Create("image.png")
-  png.Encode(file, img)
+  png.Encode(w, img)
 }
 
 func New(base int) Grid {
