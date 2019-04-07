@@ -1,8 +1,7 @@
-package main
+package diamondsquare
 
 import (
   "errors"
-  "flag"
   "fmt"
   "image"
   "image/color"
@@ -141,27 +140,21 @@ func (g Grid) CreateImage() *image.Gray {
   return img
 }
 
-func main() {
+func (g Grid) Run(base int, epScale int) {
   rand.Seed(time.Now().UnixNano())
-  var base, epScale int
-  flag.IntVar(&base, "n", 10, "n in 2^n+1")
-  flag.IntVar(&epScale, "scale", 5, "epsilon scale modifier")
-  flag.Parse()
-  size := int(math.Pow(float64(2), float64(base))) + 1
-  grid := make([]uint8, size*size)
-  surface := Grid{size, grid}
-  square := surface.GetSquare(Point{0, 0}, base)
+  square := g.GetSquare(Point{0, 0}, base)
   for _, p := range square.corners {
-    i, _ := surface.GetIndex(p)
-    surface.grid[i] = uint8(rand.Intn(256))
+    i, _ := g.GetIndex(p)
+    g.grid[i] = uint8(rand.Intn(256))
   }
-  startTime := time.Now().UnixNano()
-  surface.Calculate(base, epScale)
-  endTime := time.Now().UnixNano()
-  img := surface.CreateImage()
+  g.Calculate(base, epScale)
+  img := g.CreateImage()
   file, _ := os.Create("image.png")
   png.Encode(file, img)
-  imageTime := time.Now().UnixNano()
-  fmt.Printf("Calculations: %v ms\n", (endTime - startTime)/1000/1000)
-  fmt.Printf("Image Saving: %v ms\n", (imageTime - endTime)/1000/1000)
+}
+
+func New(base int) Grid {
+  size := int(math.Pow(float64(2), float64(base))) + 1
+  grid := make([]uint8, size*size)
+  return Grid{size, grid}
 }
